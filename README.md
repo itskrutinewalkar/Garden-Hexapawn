@@ -1,1 +1,1 @@
-# Garden-Hexapawn
+# Hexapawn
