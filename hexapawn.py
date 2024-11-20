@@ -1,60 +1,32 @@
 import tkinter as tk
-from tkinter import messagebox, simpledialog
-import random
+from tkinter import messagebox
+import pygame
 
 class HexapawnGUI:
     def __init__(self):
+        pygame.mixer.init()
         self.window = tk.Tk()
         self.window.title("Hexapawn")
-        
-        # Set the window to 600x600 and center it on the screen
-        window_width = 600
-        window_height = 600
+
+        # Center the window on the screen
+        window_width = 600  # Set desired width
+        window_height = 600  # Set desired height
+
+        # Get the screen dimensions
         screen_width = self.window.winfo_screenwidth()
         screen_height = self.window.winfo_screenheight()
+
+        # Calculate the center position
         center_x = (screen_width // 2) - (window_width // 2)
         center_y = (screen_height // 2) - (window_height // 2)
         self.window.geometry(f"{window_width}x{window_height}+{center_x}+{center_y}")
         
-        # Sound simulation with simple beep
+        #Sounds while playing
         self.sounds = {
             'select': lambda: self.window.bell(),
             'move': lambda: self.window.bell(),
-            'win': lambda: [self.window.bell() for _ in range(3)],  # Human win sound (3 beeps)
-            'lose': lambda: [self.window.bell() for _ in range(5)]   # AI win sound (5 beeps)
         }
-        
-        # Start page
-        self.create_start_page()
-    
-    def create_start_page(self):
-        # Clear any existing widgets
-        for widget in self.window.winfo_children():
-            widget.destroy()
-        
-        # Title
-        title = tk.Label(self.window, text="HEXAPAWN", font=('Arial', 24, 'bold'))
-        title.pack(pady=20)
-        
-        # Description
-        desc = tk.Label(self.window, 
-                        text="A strategic mini chess variant\n\n"
-                             "Rules:\n"
-                             "- Move pawns forward or diagonally to capture\n"
-                             "- Win by reaching opposite end or capturing all opponent's pawns", 
-                        font=('Arial', 12), justify=tk.CENTER)
-        desc.pack(pady=20)
-        
-        # Start button
-        start_button = tk.Button(self.window, text="Start Game", 
-                                 command=self.start_game, 
-                                 font=('Arial', 14))
-        start_button.pack(pady=20)
-    
-    def start_game(self):
-        # Clear start page
-        for widget in self.window.winfo_children():
-            widget.destroy()
+
         
         # Game state
         self.board = [
@@ -68,13 +40,13 @@ class HexapawnGUI:
         # Create buttons for the board
         self.buttons = []
         for i in range(3):
-            self.window.grid_rowconfigure(i, weight=1)
             row = []
+            self.window.grid_rowconfigure(i, weight=1)
             for j in range(3):
                 self.window.grid_columnconfigure(j, weight=1)
                 button = tk.Button(self.window, width=10, height=5,
                                  command=lambda r=i, c=j: self.handle_click(r, c),
-                                 font=('Arial', 80, 'bold'))
+                                 font=('Helvatica', 80, 'bold'))
                 button.grid(row=i, column=j)
                 row.append(button)
             self.buttons.append(row)
@@ -86,8 +58,7 @@ class HexapawnGUI:
             for j in range(3):
                 text = self.board[i][j]
                 if text == 'W':
-                    color = 'light gray' if (i, j) != self.selected_piece else 'pale goldenrod'
-                    self.buttons[i][j].config(text='♙', fg='white', bg=color)
+                    self.buttons[i][j].config(text='♙', fg='white', bg='gray')
                 elif text == 'B':
                     self.buttons[i][j].config(text='♟', fg='black', bg='gray')
                 else:
@@ -96,19 +67,16 @@ class HexapawnGUI:
     def handle_click(self, row, col):
         if self.current_player != 'W':  # Only allow clicks during human's turn
             return
-        
-        self.sounds['select']()  # Play selection sound
-        
+            
         if self.selected_piece is None:
             # Selecting a piece
             if self.board[row][col] == 'W':
                 self.selected_piece = (row, col)
-                self.update_display()  # Highlight selected piece
+                self.buttons[row][col].config(bg='yellow')  # Highlight selected piece
         else:
             # Moving a piece
             start_row, start_col = self.selected_piece
             if self.is_valid_move(start_row, start_col, row, col):
-                self.sounds['move']()  # Play move sound
                 # Make the move
                 self.board[row][col] = self.board[start_row][start_col]
                 self.board[start_row][start_col] = '.'
@@ -116,9 +84,8 @@ class HexapawnGUI:
                 self.update_display()
                 
                 if self.check_win('W'):
-                    self.sounds['win']()  # Play human win sound
                     messagebox.showinfo("Game Over", "You win! 🎉")
-                    self.create_start_page()
+                    self.window.quit()
                     return
                 
                 # AI's turn
@@ -255,24 +222,28 @@ class HexapawnGUI:
             return min_eval, best_move
     
     def make_ai_move(self):
-        _, best_move = self.minimax(depth=3, alpha=float('-inf'), beta=float('inf'), maximizing_player=True)
+        _, best_move = self.minimax(4, float('-inf'), float('inf'), True)
+        
         if best_move:
             start, end = best_move
-            self.make_move(start, end)
+            self.board[end[0]][end[1]] = self.board[start[0]][start[1]]
+            self.board[start[0]][start[1]] = '.'
             self.update_display()
             
             if self.check_win('B'):
-                self.sounds['lose']()  # Play AI win sound
-                messagebox.showinfo("Game Over", "AI wins! 💻")
-                self.create_start_page()
+                messagebox.showinfo("Game Over", "AI wins! 😊")
+                self.window.quit()
                 return
-        
-        self.current_player = 'W'  # Switch back to human
+            
+            self.current_player = 'W'
+        else:
+            messagebox.showinfo("Game Over", "Stalemate! 🤝")
+            self.window.quit()
     
     def run(self):
         self.window.mainloop()
 
+# Start the game
 if __name__ == "__main__":
-    gui = HexapawnGUI()
-    gui.run()
-
+    game = HexapawnGUI()
+    game.run()
