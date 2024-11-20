@@ -84,8 +84,7 @@ class HexapawnGUI:
                 self.update_display()
                 
                 if self.check_win('W'):
-                    messagebox.showinfo("Game Over", "You win! 🎉")
-                    self.window.quit()
+                    self.window.after(500, lambda: self.display_message_and_exit("You win! 🎉"))
                     return
                 
                 # AI's turn
@@ -231,14 +230,17 @@ class HexapawnGUI:
             self.update_display()
             
             if self.check_win('B'):
-                messagebox.showinfo("Game Over", "AI wins! 😊")
-                self.window.quit()
+                self.window.after(500, lambda: self.display_message_and_exit("AI wins! 😊"))
                 return
             
             self.current_player = 'W'
         else:
-            messagebox.showinfo("Game Over", "Stalemate! 🤝")
-            self.window.quit()
+            self.window.after(500, lambda: self.display_message_and_exit("Stalemate! 🤝"))
+            return
+    
+    def display_message_and_exit(self, message):
+        messagebox.showinfo("Game Over", message)
+        self.window.quit()
     
     def run(self):
         self.window.mainloop()
