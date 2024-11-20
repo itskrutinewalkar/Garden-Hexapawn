@@ -1,5 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox
+from PIL import Image, ImageTk
+from itertools import count
 import pygame
 
 class HexapawnGUI:
@@ -21,11 +23,74 @@ class HexapawnGUI:
         center_y = (screen_height // 2) - (window_height // 2)
         self.window.geometry(f"{window_width}x{window_height}+{center_x}+{center_y}")
         
+        self.win_sound = "win.mp3"
+        self.lose_sound = "lose.mp3"
+        pygame.mixer.music.load(self.win_sound)
+
         #Sounds while playing
         self.sounds = {
             'select': lambda: self.window.bell(),
             'move': lambda: self.window.bell(),
         }
+
+         # Start page
+        self.create_start_page()
+
+    def create_start_page(self):
+        # Clear any existing widgets
+        for widget in self.window.winfo_children():
+            widget.destroy()        
+
+        # Title
+        title = tk.Label(self.window, text="HEXAPAWN", font=('Arial', 24, 'bold'))
+        title.pack(pady=20)
+
+        # Description
+        desc = tk.Label(self.window, 
+                        text="A strategic mini chess variant\n\n"
+                            "Rules:\n"
+                            "- Move pawns forward or diagonally to capture\n"
+                            "- Win by reaching opposite end or capturing all opponent's pawns", 
+                        font=('Arial', 12), justify=tk.CENTER)
+        desc.pack(pady=20)
+
+        # Start button
+        start_button = tk.Button(self.window, text="Start Game", 
+                                command=self.start_game, 
+                                font=('Arial', 14))
+        start_button.pack(pady=20)
+
+        self.gif_label = tk.Label(self.window)
+        self.gif_label.pack(pady=20)
+        self.hexapawn_gif = "hexapawn.gif"
+        # Load and animate the GIF
+        self.animate_gif(self.hexapawn_gif)
+
+    def animate_gif(self, gif_path):
+        gif = Image.open(gif_path)
+
+        frames = []
+        try:
+            while True:
+                frames.append(ImageTk.PhotoImage(gif.copy()))
+                gif.seek(len(frames))  # Go to next frame
+        except EOFError:
+            pass  # End of frames
+
+        def update(ind=0):
+            frame = frames[ind]
+            self.gif_label.configure(image=frame)
+            ind = (ind + 1) % len(frames)  # Loop through frames
+            self.window.after(100, update, ind)  # Adjust timing as needed
+
+        update()  # Start animation
+
+
+
+    def start_game(self):
+        # Clear start page
+        for widget in self.window.winfo_children():
+            widget.destroy()
 
         
         # Game state
@@ -58,7 +123,7 @@ class HexapawnGUI:
             for j in range(3):
                 text = self.board[i][j]
                 if text == 'W':
-                    self.buttons[i][j].config(text='♙', fg='white', bg='gray')
+                    self.buttons[i][j].config(text='♙', fg='#93908f', bg='gray')
                 elif text == 'B':
                     self.buttons[i][j].config(text='♟', fg='black', bg='gray')
                 else:
@@ -67,7 +132,9 @@ class HexapawnGUI:
     def handle_click(self, row, col):
         if self.current_player != 'W':  # Only allow clicks during human's turn
             return
-            
+
+        self.sounds['select']()  # Play selection sound
+
         if self.selected_piece is None:
             # Selecting a piece
             if self.board[row][col] == 'W':
@@ -84,6 +151,8 @@ class HexapawnGUI:
                 self.update_display()
                 
                 if self.check_win('W'):
+                    pygame.mixer.music.load(self.win_sound)
+                    pygame.mixer.music.play()
                     self.window.after(500, lambda: self.display_message_and_exit("You win! 🎉"))
                     return
                 
@@ -91,6 +160,7 @@ class HexapawnGUI:
                 self.current_player = 'B'
                 self.make_ai_move()
             else:
+                messagebox.showinfo("Invalid move!", "Please select the correct cell")
                 self.selected_piece = None
                 self.update_display()
     
@@ -235,6 +305,8 @@ class HexapawnGUI:
             
             self.current_player = 'W'
         else:
+            pygame.mixer.music.load(self.lose_sound)
+            pygame.mixer.music.play()
             self.window.after(500, lambda: self.display_message_and_exit("Stalemate! 🤝"))
             return
     
