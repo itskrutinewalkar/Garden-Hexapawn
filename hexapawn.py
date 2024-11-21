@@ -11,8 +11,8 @@ class HexapawnGUI:
         self.window.title("Hexapawn")
 
         # Center the window on the screen
-        window_width = 600  # Set desired width
-        window_height = 600  # Set desired height
+        window_width = 800  # Set desired width
+        window_height = 800  # Set desired height
 
         # Get the screen dimensions
         screen_width = self.window.winfo_screenwidth()
@@ -42,7 +42,7 @@ class HexapawnGUI:
             widget.destroy()        
 
         # Title
-        title = tk.Label(self.window, text="HEXAPAWN", font=('Arial', 24, 'bold'))
+        title = tk.Label(self.window, text="HEXAPAWN", font=('Arial', 30, 'bold'))
         title.pack(pady=20)
 
         # Description
@@ -51,7 +51,7 @@ class HexapawnGUI:
                             "Rules:\n"
                             "- Move pawns forward or diagonally to capture\n"
                             "- Win by reaching opposite end or capturing all opponent's pawns", 
-                        font=('Arial', 12), justify=tk.CENTER)
+                        font=('Arial', 18), justify=tk.CENTER)
         desc.pack(pady=20)
 
         # Start button
