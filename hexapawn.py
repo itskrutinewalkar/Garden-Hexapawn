@@ -47,11 +47,12 @@ class HexapawnGUI:
 
         # Description
         desc = tk.Label(self.window, 
-                        text="A strategic mini chess variant\n\n"
-                            "Rules:\n"
-                            "- Move pawns forward or diagonally to capture\n"
-                            "- Win by reaching opposite end or capturing all opponent's pawns", 
-                        font=('Arial', 18), justify=tk.CENTER)
+                        text="Hexapawn is a mini chess-like game played on a 3x3 board where\n\n"
+                            "- Each player starts with 3 pawns on opposite ends\n"
+                            "- Pawns can move forward one square if unblocked\n"
+                            "- Pawns can capture diagonally forward\n"
+                            "- First player to either get a pawn to the opposite end, capture all opponent pawns, or block all opponent moves wins", 
+                        font=('Times New Roman', 18), justify=tk.CENTER)
         desc.pack(pady=20)
 
         # Start button
