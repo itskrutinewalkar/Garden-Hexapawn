@@ -42,7 +42,7 @@ class HexapawnGUI:
             widget.destroy()        
 
         # Title
-        title = tk.Label(self.window, text="HEXAPAWN", font=('Arial', 30, 'bold'))
+        title = tk.Label(self.window, text="♟ HEXAPAWN ♟", font=('Arial', 30, 'bold'))
         title.pack(pady=20)
 
         # Description
@@ -51,8 +51,8 @@ class HexapawnGUI:
                             "- Each player starts with 3 pawns on opposite ends\n"
                             "- Pawns can move forward one square if unblocked\n"
                             "- Pawns can capture diagonally forward\n"
-                            "- First player to either get a pawn to the opposite end, capture all opponent pawns, or block all opponent moves wins", 
-                        font=('Times New Roman', 18), justify=tk.CENTER)
+                            "- First player to either get a pawn to the opposite end,\n capture all opponent pawns, or block all opponent moves wins", 
+                        font=('Helvatica', 18), justify=tk.CENTER)
         desc.pack(pady=20)
 
         # Start button
@@ -301,6 +301,8 @@ class HexapawnGUI:
             self.update_display()
             
             if self.check_win('B'):
+                pygame.mixer.music.load(self.lose_sound)
+                pygame.mixer.music.play()
                 self.window.after(500, lambda: self.display_message_and_exit("AI wins! 😊"))
                 return
             
@@ -312,8 +314,16 @@ class HexapawnGUI:
             return
     
     def display_message_and_exit(self, message):
-        messagebox.showinfo("Game Over", message)
-        self.window.quit()
+        response = messagebox.askyesno("Game Over", f"{message}\nDo you want to continue?")
+        if response:  # If the user chooses "Yes"
+            self.start_new_game()
+        else:  # If the user chooses "No"
+            self.window.quit()
+
+    def start_new_game(self):
+        # Reset the game state and start a new game
+        self.start_game()
+        self.update_ui()
     
     def run(self):
         self.window.mainloop()
