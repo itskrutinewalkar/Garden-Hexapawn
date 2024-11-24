@@ -5,10 +5,12 @@ from itertools import count
 import pygame
 
 class HexapawnGUI:
+    # [Previous initialization code remains the same until the evaluate method]
     def __init__(self):
         pygame.mixer.init()
         self.window = tk.Tk()
         self.window.title("Hexapawn")
+        self.window.configure(bg="#F1F0E8")
 
         # Center the window on the screen
         window_width = 800  # Set desired width
@@ -42,7 +44,7 @@ class HexapawnGUI:
             widget.destroy()        
 
         # Title
-        title = tk.Label(self.window, text="♟ HEXAPAWN ♟", font=('Arial', 30, 'bold'))
+        title = tk.Label(self.window, text="♟ HEXAPAWN ♟", font=('Times New Roman', 35, 'bold'), bg="#F1F0E8", fg="#493628")
         title.pack(pady=20)
 
         # Description
@@ -52,18 +54,20 @@ class HexapawnGUI:
                             "- Pawns can move forward one square if unblocked\n"
                             "- Pawns can capture diagonally forward\n"
                             "- First player to either get a pawn to the opposite end,\n capture all opponent pawns, or block all opponent moves wins", 
-                        font=('Helvatica', 18), justify=tk.CENTER)
+                        font=('Lora', 20, 'italic'), justify=tk.LEFT, bg="#F1F0E8", fg="#493628")
         desc.pack(pady=20)
 
         # Start button
-        start_button = tk.Button(self.window, text="Start Game", 
+        start_button = tk.Button(self.window, text="START GAME", 
                                 command=self.start_game, 
-                                font=('Arial', 14))
-        start_button.pack(pady=20)
+                                font=('Times New Roman', 18), bg="#493628", fg="#493628", relief="flat",  # Removes the default border
+                                      padx=20, pady=10,  # Padding inside the button
+                                      bd=0)
+        start_button.pack(pady=10)
 
-        self.gif_label = tk.Label(self.window)
+        self.gif_label = tk.Label(self.window, bg="#F1F0E8")
         self.gif_label.pack(pady=20)
-        self.hexapawn_gif = "hexapawn.gif"
+        self.hexapawn_gif = "hexa.gif"
         # Load and animate the GIF
         self.animate_gif(self.hexapawn_gif)
 
@@ -73,7 +77,9 @@ class HexapawnGUI:
         frames = []
         try:
             while True:
-                frames.append(ImageTk.PhotoImage(gif.copy()))
+                frame = gif.copy()
+                frame.thumbnail((320, 320))
+                frames.append(ImageTk.PhotoImage(frame))
                 gif.seek(len(frames))  # Go to next frame
         except EOFError:
             pass  # End of frames
@@ -82,7 +88,7 @@ class HexapawnGUI:
             frame = frames[ind]
             self.gif_label.configure(image=frame)
             ind = (ind + 1) % len(frames)  # Loop through frames
-            self.window.after(100, update, ind)  # Adjust timing as needed
+            self.window.after(50, update, ind)  # Adjust timing as needed
 
         update()  # Start animation
 
@@ -110,9 +116,13 @@ class HexapawnGUI:
             self.window.grid_rowconfigure(i, weight=1)
             for j in range(3):
                 self.window.grid_columnconfigure(j, weight=1)
+                if i == j or (i % 2 == 0 and j % 2 == 0):
+                   bg_color = '#F1F0E8'
+                else:
+                   bg_color = '#755322'
                 button = tk.Button(self.window, width=10, height=5,
-                                 command=lambda r=i, c=j: self.handle_click(r, c),
-                                 font=('Helvatica', 80, 'bold'))
+                                   command=lambda r=i, c=j: self.handle_click(r, c),
+                                   font=('Helvatica', 120, 'bold'), fg=bg_color)
                 button.grid(row=i, column=j)
                 row.append(button)
             self.buttons.append(row)
@@ -124,11 +134,11 @@ class HexapawnGUI:
             for j in range(3):
                 text = self.board[i][j]
                 if text == 'W':
-                    self.buttons[i][j].config(text='♙', fg='#93908f', bg='gray')
+                    self.buttons[i][j].config(text='♙', fg='#6b3417', bg='#ee871a')
                 elif text == 'B':
-                    self.buttons[i][j].config(text='♟', fg='black', bg='gray')
+                    self.buttons[i][j].config(text='♟', fg='#6b3417', bg='#ee871a')
                 else:
-                    self.buttons[i][j].config(text='', bg='light gray')
+                    self.buttons[i][j].config(text='', bg='#F1F0E8')
     
     def handle_click(self, row, col):
         if self.current_player != 'W':  # Only allow clicks during human's turn
@@ -140,7 +150,9 @@ class HexapawnGUI:
             # Selecting a piece
             if self.board[row][col] == 'W':
                 self.selected_piece = (row, col)
-                self.buttons[row][col].config(bg='yellow')  # Highlight selected piece
+                button = self.buttons[row][col]
+                button.config(bg='#ee871a')
+                button.update()
         else:
             # Moving a piece
             start_row, start_col = self.selected_piece
@@ -228,34 +240,92 @@ class HexapawnGUI:
             return True
             
         return False
-    
+
     def evaluate(self):
+        # First check for immediate wins
         if self.check_win('B'):
             return 1000
         if self.check_win('W'):
             return -1000
             
-        # Simple piece counting heuristic
+        # Improved heuristic evaluation
         score = 0
-        for row in self.board:
-            for cell in row:
+        for i, row in enumerate(self.board):
+            for j, cell in enumerate(row):  # Fixed: enumerate row directly
                 if cell == 'B':
-                    score += 1
+                    # Give more value to pawns closer to winning position
+                    score += 10 + (2 - i) * 5  # More value for pawns closer to bottom
+                    # Add value for having center control
+                    if j == 1:
+                        score += 2
                 elif cell == 'W':
-                    score -= 1
+                    # Similar evaluation for white pieces
+                    score -= 10 + i * 5  # More value for pawns closer to top
+                    if j == 1:
+                        score -= 2
+
+        # Add mobility score (number of possible moves)
+        b_moves = len(self.get_possible_moves('B'))
+        w_moves = len(self.get_possible_moves('W'))
+        score += b_moves * 3
+        score -= w_moves * 3
+
         return score
-    
+
+    def get_possible_moves(self, player):
+        moves = []
+        direction = -1 if player == 'W' else 1
+        
+        # Debug print
+        print(f"Getting moves for {player}")
+        print("Current board state:")
+        for row in self.board:
+            print(row)
+        
+        for i in range(3):
+            for j in range(3):
+                if self.board[i][j] == player:
+                    # Forward move
+                    new_row = i + direction
+                    if 0 <= new_row < 3 and self.board[new_row][j] == '.':
+                        moves.append(((i, j), (new_row, j)))
+                        print(f"Found forward move from ({i},{j}) to ({new_row},{j})")
+                    
+                    # Diagonal captures
+                    for new_col in [j-1, j+1]:
+                        if 0 <= new_row < 3 and 0 <= new_col < 3:
+                            target = self.board[new_row][new_col]
+                            enemy = 'W' if player == 'B' else 'B'
+                            if target == enemy:
+                                moves.append(((i, j), (new_row, new_col)))
+                                print(f"Found capture move from ({i},{j}) to ({new_row},{new_col})")
+        
+        print(f"Total moves found: {len(moves)}")
+        return moves
+
     def minimax(self, depth, alpha, beta, maximizing_player):
-        if depth == 0 or self.check_win('B') or self.check_win('W'):
-            return self.evaluate(), None
+        # Debug print
+        print(f"Minimax called with depth {depth}, maximizing: {maximizing_player}")
+        
+        if depth == 0:
+            eval_score = self.evaluate()
+            print(f"Leaf node evaluation: {eval_score}")
+            return eval_score, None
+            
+        if self.check_win('B'):
+            return 1000 + depth, None
+        if self.check_win('W'):
+            return -1000 - depth, None
         
         player = 'B' if maximizing_player else 'W'
         possible_moves = self.get_possible_moves(player)
         
         if not possible_moves:
-            return self.evaluate(), None
+            eval_score = self.evaluate()
+            print(f"No moves available, evaluation: {eval_score}")
+            return eval_score, None
         
-        best_move = None
+        best_move = possible_moves[0]  # Initialize with first move
         if maximizing_player:
             max_eval = float('-inf')
             for start, end in possible_moves:
@@ -264,6 +334,8 @@ class HexapawnGUI:
                 
                 eval, _ = self.minimax(depth - 1, alpha, beta, False)
                 self.undo_move(start, end, captured_piece)
+                
+                print(f"Move {start}->{end} evaluation: {eval}")
                 
                 if eval > max_eval:
                     max_eval = eval
@@ -282,6 +354,8 @@ class HexapawnGUI:
                 eval, _ = self.minimax(depth - 1, alpha, beta, True)
                 self.undo_move(start, end, captured_piece)
                 
+                print(f"Move {start}->{end} evaluation: {eval}")
+                
                 if eval < min_eval:
                     min_eval = eval
                     best_move = (start, end)
@@ -290,16 +364,23 @@ class HexapawnGUI:
                 if beta <= alpha:
                     break
             return min_eval, best_move
-    
+
     def make_ai_move(self):
-        _, best_move = self.minimax(4, float('-inf'), float('inf'), True)
+        print("AI is thinking...")
+        # Reduce depth to 3 for faster response while debugging
+        score, best_move = self.minimax(3, float('-inf'), float('inf'), True)
+        print(f"Best move found: {best_move} with score {score}")
         
         if best_move:
             start, end = best_move
+            print(f"Making move from {start} to {end}")
+            
+            # Make the move
             self.board[end[0]][end[1]] = self.board[start[0]][start[1]]
             self.board[start[0]][start[1]] = '.'
             self.update_display()
             
+            # Check for win
             if self.check_win('B'):
                 pygame.mixer.music.load(self.lose_sound)
                 pygame.mixer.music.play()
@@ -308,11 +389,16 @@ class HexapawnGUI:
             
             self.current_player = 'W'
         else:
-            pygame.mixer.music.load(self.lose_sound)
-            pygame.mixer.music.play()
-            self.window.after(500, lambda: self.display_message_and_exit("Stalemate! 🤝"))
-            return
-    
+            print("No valid moves found!")
+            if self.check_win('W'):
+                pygame.mixer.music.load(self.win_sound)
+                pygame.mixer.music.play()
+                self.window.after(500, lambda: self.display_message_and_exit("You win! 🎉"))
+            else:
+                pygame.mixer.music.load(self.lose_sound)
+                pygame.mixer.music.play()
+                self.window.after(500, lambda: self.display_message_and_exit("Stalemate! 🤝"))
+        
     def display_message_and_exit(self, message):
         response = messagebox.askyesno("Game Over", f"{message}\nDo you want to continue?")
         if response:  # If the user chooses "Yes"
@@ -328,7 +414,6 @@ class HexapawnGUI:
     def run(self):
         self.window.mainloop()
 
-# Start the game
-if __name__ == "__main__":
+if __name__ == '__main__':
     game = HexapawnGUI()
     game.run()
